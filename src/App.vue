@@ -1,29 +1,3 @@
-<!--<template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
-</template>
-
-<script>
-import HelloWorld from './components/HelloWorld.vue'
-
-export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-}
-</script>
-
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>-->
 <template>
   <div class="container">
     <h1>Rounding to the Nearest 10</h1>
@@ -58,6 +32,15 @@ export default {
         </div>
       </transition>
 
+      <div v-if="highScores.length" class="leaderboard">
+        <h2>🏆 High Scores</h2>
+        <ul>
+          <li v-for="(entry, i) in highScores" :key="i">
+            {{ i + 1 }}. {{ entry.username }} - {{ entry.score }}/12
+          </li>
+        </ul>
+      </div>
+
       <footer>
         <p>&copy; mathinenglish.com</p>
       </footer>
@@ -66,12 +49,17 @@ export default {
 </template>
 
 <script>
+
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from 'firebase/firestore';
+
 export default {
   data() {
     return {
       username: '',
       score: null,
       answers: Array(12).fill(''),
+      highScores: [],
       questions: [
         { original: 123, correct: 120, options: [100, 120, 130] },
         { original: 47, correct: 50, options: [40, 50, 60] },
@@ -89,7 +77,7 @@ export default {
     };
   },
   methods: {
-    handleSubmit() {
+    async handleSubmit() {
       if (!this.username.trim()) {
         alert("Please enter your name.");
         return;
@@ -104,13 +92,38 @@ export default {
       this.score = this.questions.reduce((total, q, index) => {
         return total + (this.answers[index] == q.correct ? 1 : 0);
       }, 0);
+
+       try {
+        await addDoc(collection(db, 'scores'), {
+          username: this.username.trim(),
+          score: this.score,
+          timestamp: serverTimestamp()
+        });
+        console.log("Score saved to Firestore ✅");
+
+        await this.fetchHighScores();
+      } catch (e) {
+        console.error("Error saving score to Firestore ❌", e);
+      }
     },
     reset() {
       this.username = '';
       this.answers = Array(12).fill('');
       this.score = null;
+    },
+
+    async fetchHighScores() {
+    try {
+      const scoresRef = collection(db, 'scores');
+      const q = query(scoresRef, orderBy('score', 'desc'), limit(5));
+      const snapshot = await getDocs(q);
+      this.highScores = snapshot.docs.map(doc => doc.data());
+    } catch (e) {
+      console.error("Error fetching high scores:", e);
     }
+  }
   },
+
   computed: {
 
     progressPercent() {
@@ -230,7 +243,7 @@ button {
 }
 
 button:hover {
-  background-color: #312c51;
+  background-color: #f1aa9b;
 }
 
 .score {
@@ -263,6 +276,32 @@ footer {
   height: 100%;
   transition: width 0.3s ease-in-out;
 }
+
+.leaderboard {
+  margin-top: 30px;
+  background-color: #f1aa9b22;
+  border: 1px solid #f1aa9b;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.leaderboard h2 {
+  color: #f1aa9b;
+  margin-bottom: 10px;
+}
+
+.leaderboard ul {
+  list-style: none;
+  padding: 0;
+}
+
+.leaderboard li {
+  font-weight: 500;
+  color: #f1aa9b;
+  margin: 6px 0;
+}
+
 
 /* Animation */
 @keyframes fadeInUp {
