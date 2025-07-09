@@ -28,6 +28,10 @@ export default {
   <div class="container">
     <h1>Rounding to the Nearest 10</h1>
     <form @submit.prevent="handleSubmit">
+      <div class="progress-bar">
+        <div class="fill" :style="{ width: progressPercent + '%' }"></div>
+      </div>
+
       <label>
         Name:
         <input type="text" v-model="username" required placeholder="Enter your name" />
@@ -90,6 +94,13 @@ export default {
         alert("Please enter your name.");
         return;
       }
+
+      const unanswered = this.answers.some(answer => answer === '');
+      if (unanswered) {
+        alert("Please answer all questions before submitting.");
+        return;
+      }
+
       this.score = this.questions.reduce((total, q, index) => {
         return total + (this.answers[index] == q.correct ? 1 : 0);
       }, 0);
@@ -99,52 +110,182 @@ export default {
       this.answers = Array(12).fill('');
       this.score = null;
     }
+  },
+  computed: {
+
+    progressPercent() {
+      const answered = this.answers.filter(a => a !== '').length;
+      return Math.round((answered / this.questions.length) * 100);
+    }
   }
 };
+
 </script>
 
 <style scoped>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #312C51; /* deep indigo */
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
 .container {
-  max-width: 700px;
-  margin: auto;
-  font-family: Arial, sans-serif;
-  padding: 20px;
+  max-width: 750px;
+  margin: 30px auto;
+  background-color: #312C51;
+  padding: 40px;
+  border: 2px solid #e6e1da;
+  border-radius: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
-.question {
-  margin-bottom: 15px;
-}
-.buttons {
-  margin-top: 20px;
-  display: flex;
-  gap: 10px;
-}
-.score {
-  margin-top: 20px;
-  font-weight: bold;
-  font-size: 1.2em;
-}
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-footer {
-  margin-top: 30px;
-  font-size: 0.9em;
+
+h1 {
+  color: #F1AA9B;
+  font-weight: 700;
+  font-size: 2em;
   text-align: center;
-  color: #555;
+  margin-bottom: 20px;
 }
-select, input {
-  padding: 5px;
+
+label {
+  display: block;
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #e6e1da;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  background-color: #c8c8c9;
+  border: 1px solid #ccc;
+  border-radius: 8px;
   font-size: 1em;
-  margin-top: 5px;
+  color: rgb(76, 69, 123);
 }
-@media (max-width: 600px) {
-  .container {
-    padding: 10px;
+
+.questions {
+  margin-top: 30px;
+}
+
+.question {
+  background: #48426d;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-left: 5px solid #F1AA9B;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.question p {
+  margin: 0 0 10px;
+  font-weight: 500;
+  color: white
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  font-size: 0.8em;
+  background-color:#48426d;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  color: white
+}
+
+select:hover {
+  background-color: #f1aa9b2e;
+  border-color: #f1aa9b;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+option {
+  color: #312C51;
+  background-color: #aeadac;
+  opacity: 0.8
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+button {
+  background-color: #48426d;
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #312c51;
+}
+
+.score {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 1.3em;
+  color: #f1aa9b;
+  font-weight: bold;
+  animation: fadeInUp 0.6s ease;
+}
+
+footer {
+  text-align: center;
+  font-size: 0.9em;
+  color: #312c51;
+  margin-top: 40px;
+  padding-bottom: 20px;
+}
+
+.progress-bar {
+  background-color: #e6e1da;
+  height: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.progress-bar .fill {
+  background-color: #f0c38e;
+  height: 100%;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Animation */
+@keyframes fadeInUp {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .container {
+    padding: 20px;
+  }
+  .buttons {
+    flex-direction: column;
+  }
+}
+
 </style>
 
 
