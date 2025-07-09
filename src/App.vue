@@ -2,16 +2,17 @@
   <div class="container">
     <h1>Rounding to the Nearest 10</h1>
     <form @submit.prevent="handleSubmit">
-      <div class="progress-bar">
-        <div class="fill" :style="{ width: progressPercent + '%' }"></div>
-      </div>
-
+      
       <label>
-        Name:
         <input type="text" v-model="username" required placeholder="Enter your name" />
       </label>
 
-      <div class="questions">
+      <div>
+        <br>
+        <label class="instruction-label">Answer all of the questions below:</label>
+      </div>
+      
+      <div class="questions-grid">
         <div v-for="(q, index) in questions" :key="index" class="question">
           <p>{{ index + 1 }}. Round {{ q.original }} to the nearest 10:</p>
           <select v-model="answers[index]">
@@ -19,6 +20,10 @@
             <option v-for="opt in q.options" :key="opt" :value="opt">{{ opt }}</option>
           </select>
         </div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="fill" :style="{ width: progressPercent + '%' }"></div>
       </div>
 
       <div class="buttons">
@@ -32,19 +37,26 @@
         </div>
       </transition>
 
-      <div v-if="highScores.length" class="leaderboard">
-        <h2>🏆 High Scores</h2>
-        <ul>
-          <li v-for="(entry, i) in highScores" :key="i">
-            {{ i + 1 }}. {{ entry.username }} - {{ entry.score }}/12
-          </li>
-        </ul>
+      <div v-if="score !== null" style="text-align: center; margin-top: 20px;">
+        <button type="button" @click="showLeaderboard">View Leaderboard</button>
       </div>
 
       <footer>
         <p>&copy; mathinenglish.com</p>
       </footer>
     </form>
+
+    <div v-if="showModal" class="modal">
+      <div class="modal-content">
+        <h2 class="model-title">🏆 Leaderboard</h2>
+        <ul class="leaderboard-list">
+          <li v-for="(user, i) in highScores" :key="i">
+            {{ i + 1 }}. {{ user.username }} — {{ user.score }}/12
+          </li>
+        </ul>
+        <button @click="closeModal" class="modal-close">Close</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -58,6 +70,7 @@ export default {
     return {
       username: '',
       score: null,
+      showModal: false,
       answers: Array(12).fill(''),
       highScores: [],
       questions: [
@@ -99,11 +112,9 @@ export default {
           score: this.score,
           timestamp: serverTimestamp()
         });
-        console.log("Score saved to Firestore ✅");
-
-        await this.fetchHighScores();
+        console.log("Score saved to Firestore");
       } catch (e) {
-        console.error("Error saving score to Firestore ❌", e);
+        console.error("Error saving score to Firestore!", e);
       }
     },
     reset() {
@@ -114,13 +125,25 @@ export default {
 
     async fetchHighScores() {
     try {
+      this.highScores = [];
+          
       const scoresRef = collection(db, 'scores');
       const q = query(scoresRef, orderBy('score', 'desc'), limit(5));
       const snapshot = await getDocs(q);
+      
       this.highScores = snapshot.docs.map(doc => doc.data());
     } catch (e) {
       console.error("Error fetching high scores:", e);
     }
+  },
+  
+  async showLeaderboard() {
+    await this.fetchHighScores(); 
+    this.showModal = true;
+  },
+
+  closeModal() {
+    this.showModal = false;
   }
   },
 
@@ -151,6 +174,7 @@ body {
   max-width: 750px;
   margin: 30px auto;
   background-color: #312C51;
+  background: linear-gradient(110deg, #413c66, #22123d);
   padding: 40px;
   border: 2px solid #e6e1da;
   border-radius: 24px;
@@ -163,6 +187,7 @@ h1 {
   font-size: 2em;
   text-align: center;
   margin-bottom: 20px;
+
 }
 
 label {
@@ -170,6 +195,11 @@ label {
   margin-bottom: 20px;
   font-weight: 600;
   color: #e6e1da;
+}
+
+.instruction-label {
+  font-weight: normal;
+  color: #e6e1da; /* optional, to match theme */
 }
 
 input[type="text"] {
@@ -191,7 +221,7 @@ input[type="text"] {
   background: #48426d;
   padding: 20px;
   margin-bottom: 20px;
-  border-left: 5px solid #F1AA9B;
+  border-left: 5px solid #c06c5b;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
@@ -201,6 +231,14 @@ input[type="text"] {
   font-weight: 500;
   color: white
 }
+
+.questions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 30px;
+}
+
 
 select {
   width: 100%;
@@ -258,7 +296,7 @@ button:hover {
 footer {
   text-align: center;
   font-size: 0.9em;
-  color: #312c51;
+  color: #666666;
   margin-top: 40px;
   padding-bottom: 20px;
 }
@@ -277,30 +315,79 @@ footer {
   transition: width 0.3s ease-in-out;
 }
 
-.leaderboard {
-  margin-top: 30px;
-  background-color: #f1aa9b22;
-  border: 1px solid #f1aa9b;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+.leaderboard-list {
+  list-style: none; 
+  padding-left: 0;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.leaderboard h2 {
-  color: #f1aa9b;
+.leaderboard-list li {
   margin-bottom: 10px;
+  font-size: 1em;
+  color: whitesmoke;
 }
 
-.leaderboard ul {
-  list-style: none;
-  padding: 0;
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(49, 44, 81, 0.85); /* backdrop */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
 }
 
-.leaderboard li {
-  font-weight: 500;
-  color: #f1aa9b;
-  margin: 6px 0;
+.modal-content {
+  background: #312c51;
+  padding: 30px;
+  border-radius: 20px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-left: 6px solid #353434;
+  animation: fadeIn 0.4s ease-in-out;
+  color: #F1AA9B;
 }
+
+.modal-title {
+  font-size: 1.6em;
+  font-weight: bold;
+  color: #F1AA9B;
+  margin-bottom: 20px;
+}
+
+
+.modal-close {
+  padding: 10px 20px;
+  background-color:  #f1aa9b; 
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.modal-close:hover {
+  background-color: #48426d;
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 
 /* Animation */
